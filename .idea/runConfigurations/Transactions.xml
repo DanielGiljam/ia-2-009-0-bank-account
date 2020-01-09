@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Transactions" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.danielgiljam.ia_2_009_0_bank_account.Transactions" />
+    <module name="ia-2-009-0-bank-account" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
