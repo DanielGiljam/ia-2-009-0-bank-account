@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<consoleDialogue xmlns="consoleDialogue"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="consoleDialogue console-dialogue.xsd">
+
+    <consoleDialogueElements>
+        <consoleDialogueElement>
+            <action>TestAction</action>
+            <pattern>test</pattern>
+            <terminal>false</terminal>
+        </consoleDialogueElement>
+    </consoleDialogueElements>
+    <initialMessage>This is a test.</initialMessage>
+    <helpMessage>This is just a test.</helpMessage>
+
+</consoleDialogue>
+

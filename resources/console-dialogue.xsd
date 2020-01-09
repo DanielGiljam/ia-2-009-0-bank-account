@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="consoleDialogue"
+           xmlns="consoleDialogue"
+           elementFormDefault="qualified">
+
+    <xs:element name="consoleDialogue">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="consoleDialogueElements">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="consoleDialogueElement" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="action" type="xs:string"/>
+                                        <xs:element name="pattern" type="xs:string"/>
+                                        <xs:element name="terminal" type="xs:boolean"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="name" type="xs:string"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="initialMessage" type="xs:string"/>
+                <xs:element name="helpMessage" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
