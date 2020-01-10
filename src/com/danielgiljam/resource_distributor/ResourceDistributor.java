@@ -1,4 +1,4 @@
-package com.danielgiljam.ia_2_009_0_bank_account.resources;
+package com.danielgiljam.resource_distributor;
 
 import org.xml.sax.SAXException;
 

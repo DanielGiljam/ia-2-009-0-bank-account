@@ -1,4 +1,4 @@
-package com.danielgiljam.ia_2_009_0_bank_account.resources;
+package com.danielgiljam.resource_distributor;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -58,6 +58,14 @@ class ResourceHandler extends DefaultHandler {
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         super.startElement(uri, localName, qName, attributes);
+        ips.println("uri:");
+        ips.println(uri);
+        ips.println("localName:");
+        ips.println(localName);
+        ips.println("qName:");
+        ips.println(qName);
+        ips.println("attributes:");
+        ips.println(attributes);
     }
 
     @Override
