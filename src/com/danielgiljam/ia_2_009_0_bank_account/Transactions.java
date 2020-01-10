@@ -6,11 +6,7 @@ package com.danielgiljam.ia_2_009_0_bank_account;
 //  Demonstrates the creation and use of multiple Account objects.
 //********************************************************************
 
-import com.danielgiljam.ia_2_009_0_bank_account.resources.ResourceDistributor;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
+import com.danielgiljam.resource_distributor.ResourceDistributor;
 
 public class Transactions
 {
