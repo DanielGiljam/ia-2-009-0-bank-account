@@ -1,4 +1,4 @@
-package com.danielgiljam.ia_2_009_0_bank_account;
+package com.danielgiljam.ia_2_009_0_bank_account.example;
 
 //********************************************************************
 //  Account.java       Author: Lewis/Loftus
