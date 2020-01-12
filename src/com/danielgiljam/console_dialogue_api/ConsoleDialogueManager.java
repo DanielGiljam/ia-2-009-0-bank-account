@@ -19,22 +19,25 @@ import java.util.regex.Pattern;
  * CDM = {@link ConsoleDialogueManager}
  * <br>
  * CDE = {@link ConsoleDialogueElement}
+ * <br>
+ * <br>
+ * [UPDATE 2020-01-12, Daniel Giljam]: Made some improvements and customizations for this specific case/implementation (v1.1-unofficial).
  *
  * @author Daniel Giljam
- * @version 1.0
+ * @version 1.1-unofficial
  * @since 2018-02-14
  */
-class ConsoleDialogueManager {
+public class ConsoleDialogueManager {
 
     /**
      * The default message shown when user input didn't match any of the patterns defined in the CDEs.
      */
-    private static final String UNABLE_TO_INTERPRET_MESSAGE = "Your input could not be interpreted. Type \"help\" for help.";
+    private static final String UNABLE_TO_INTERPRET_MESSAGE = "Din inmatning kunde inte tolkas. Skriv \"hjälp\" för hjälp.";
 
     /**
      * The regex string defining the pattern used for matching by the default help CDE.
      */
-    private static final String HELP_PATTERN = "help";
+    private static final String HELP_PATTERN = "hjälp";
 
     /**
      * The currently active initial message.
@@ -45,6 +48,11 @@ class ConsoleDialogueManager {
      * The message shown by the default help CDE.
      */
     private static String activeHelpMessage = "";
+
+    /**
+     * The default active "input feed".
+     */
+    private static String activeInputFeed = ">";
 
     /**
      * The default help CDE.
@@ -58,11 +66,6 @@ class ConsoleDialogueManager {
     private static final Scanner scanner = new Scanner(System.in).useDelimiter("\n");
 
     /**
-     * String that holds what is in this documentation referred to as the user input.
-     */
-    private static String input = "";
-
-    /**
      * List that hold all the active CDEs + the order they "check" in.
      */
     private static List<ConsoleDialogueElement> activeCDEs = new ArrayList<>();
@@ -70,21 +73,28 @@ class ConsoleDialogueManager {
     /**
      * This instance's CDEs + a variable for potentially backing up previously active CDEs.
      */
-    private List<ConsoleDialogueElement> cdElements = new ArrayList<>();
+    private List<ConsoleDialogueElement> cdElements;
     private List<ConsoleDialogueElement> cdElementsBackup = new ArrayList<>();
 
     /**
      * Holds instance-specific "initial message" - a message shown at the creation of an CDM
      * + a variable for potentially backing up a previously active inital message.
      */
-    private String initialMessage = "";
-    private String initalMessageBackup = "";
+    private String initialMessage;
+    private String initialMessageBackup = "";
 
     /**
      * This instance's help message + a variable for potentially backing up a previously active help message.
      */
-    private String helpMessage = "";
+    private String helpMessage;
     private String helpMessageBackup = "";
+
+    /**
+     * This instance's input line "prefix" ("input feed") + a variable for potentially backing up a previously
+     * active "input feed".
+     */
+    private String inputFeed;
+    private String inputFeedBackup = ">";
 
     /**
      * <h2>CDM Constructor</h2>
@@ -96,10 +106,11 @@ class ConsoleDialogueManager {
      * @param queue          boolean that, if set to true, tells the CDM to just queue up the CDEs and then move on with the code, rather than start the dialogue immediately
      * @param merge          boolean that if set to true, tells the CDM to not replace the "queue", but rather add on top of what was already there
      */
-    ConsoleDialogueManager(List<ConsoleDialogueElement> cdElements, String initialMessage, String helpMessage, boolean queue, boolean merge) {
+    public ConsoleDialogueManager(List<ConsoleDialogueElement> cdElements, String initialMessage, String helpMessage, String inputFeed, boolean queue, boolean merge) {
         this.cdElements = cdElements;
         this.initialMessage = initialMessage;
         this.helpMessage = helpMessage;
+        this.inputFeed = inputFeed;
         InitializeCD(queue, merge);
     }
 
@@ -122,18 +133,21 @@ class ConsoleDialogueManager {
      */
     private void InitializeCD(boolean queue, boolean merge) {
         cdElementsBackup = activeCDEs;
-        initalMessageBackup = activeInitialMessage;
+        initialMessageBackup = activeInitialMessage;
         helpMessageBackup = activeHelpMessage;
+        inputFeedBackup = activeInputFeed;
         if (merge) {
             activeCDEs.addAll(0, cdElements);
             activeInitialMessage += "\n" + initialMessage;
-            activeHelpMessage += "\n" + helpMessage;
+            if (helpMessage != null) activeHelpMessage += "\n" + helpMessage;
+            if (inputFeed != null) activeInputFeed = inputFeed;
         } else {
             activeCDEs = cdElements;
             activeInitialMessage = initialMessage;
-            activeHelpMessage = helpMessage;
+            if (helpMessage != null) activeHelpMessage = helpMessage;
+            activeInputFeed = inputFeed != null ? inputFeed : "> ";
         }
-        if (!initialMessage.isEmpty()) System.out.println("\n" + initialMessage);
+        if (initialMessage != null) System.out.println("\n" + initialMessage);
         if (!queue) ConsoleDialogue();
     }
 
@@ -141,7 +155,7 @@ class ConsoleDialogueManager {
      * <h3>ConsoleDialogue</h3>
      * The essence of this class. Explained in greater detail in comments within the code.
      */
-    private void ConsoleDialogue() {
+    public void ConsoleDialogue() {
 
         // Variable name stands for "process communication"
         // and refers to its purpose to communicate to this method's loops when to stop.
@@ -156,8 +170,8 @@ class ConsoleDialogueManager {
         while (!processComm[0]) {
 
             // "listening" for user input
-            System.out.print("\n> ");
-            input = scanner.next();
+            System.out.print("\n" + activeInputFeed + " ");
+            final String input = scanner.next();
 
             // resetting "the aha"
             processComm[1] = false;
@@ -185,89 +199,9 @@ class ConsoleDialogueManager {
      * Restores the backed up values of static variables.
      */
     private void CollapseCD() {
-        //
         activeCDEs = cdElementsBackup;
-        activeInitialMessage = initalMessageBackup;
+        activeInitialMessage = initialMessageBackup;
         activeHelpMessage = helpMessageBackup;
-    }
-}
-
-/**
- * <h1>The Console Dialogue Element Class</h1>
- * Responsible for the detecting and executing of one console dialogue command or the interpreting and parsing of one kind of expected user input
- * <p>
- * The second of the two parts that make up my ConsoleDialogueAPI, a lightweight programming interface for creating console dialogues.
- * <p>
- * Abbreviations you might encounter in this documentation:
- * <br>
- * CDM = {@link ConsoleDialogueManager}
- * <br>
- * CDE = {@link ConsoleDialogueElement}
- *
- * @author Daniel Giljam
- * @version 1.0
- * @since 2018-02-14
- */
-class ConsoleDialogueElement {
-
-    /**
-     * A slot for the value returned by the check() -function to the "last word" boolean in the process communication variable in the ConsoleDialogue() -method.
-     */
-    boolean lastWord;
-
-    /**
-     * A slot for the code that should be executed after a positive check.
-     */
-    private Runnable action;
-
-    /**
-     * The Pattern object – initiated by the constructor with the regex string provided as parameter.
-     */
-
-    private Pattern pattern;
-
-    /**
-     * Used to see if the Pattern object's pattern matches with a given string (user input, of course, in this case).
-     */
-    Matcher matcher;
-
-    /**
-     * <h2>CDE Constructor</h2>
-     * Saves parameters in their corresponding instance-specific variables.
-     *
-     * @param action   a runnable with the code that should be executed after a positive check
-     * @param pattern  a regex string defining the pattern used for matching by this CDE
-     * @param terminal if true, means that "the element is terminal" – a "positive check" with this CDE doesn't only stop "the interpreter", but also ends the "prompter" (see comments within the ConsoleDialogue() -method's code for explanations on what the words surrounded by double quotation marks mean)
-     */
-    ConsoleDialogueElement(Runnable action, String pattern, boolean terminal) {
-        this.lastWord = terminal;
-        this.action = action;
-        this.pattern = Pattern.compile("\\A\\s*" + pattern + "\\s*\\z", Pattern.CASE_INSENSITIVE);
-    }
-
-    /**
-     * <h3>check</h3>
-     * Explained in greater detail in comments within the code.
-     *
-     * @param input the latest user input string
-     * @return array containing two booleans that in the ConsoleDialogue() -method become the new values of the "process communication" variables
-     */
-    boolean[] check(String input) {
-
-        // refreshes Matcher with the latest user input string
-        matcher = pattern.matcher(input);
-
-        // If this instance's Pattern matches with the string,
-        // the runnable is executed,
-        // and new values are returned to the process communicator in the ConsoleDialogue() -method,
-        // telling "the interpreter" to stop, and - depending on the value of the lastWord variable - telling the "prompter" whether to stop or not.
-        // In this case the check is positive.
-        // Else, the "passive" values are returned to the process communicator in the ConsoleDialogue() -method,
-        // ergo values that won't trigger any changes in the loops.
-        // In this case the check is negative.
-        if (matcher.matches()) {
-            action.run();
-            return new boolean[]{lastWord, true};
-        } else return new boolean[]{false, false};
+        activeInputFeed = inputFeedBackup;
     }
 }
