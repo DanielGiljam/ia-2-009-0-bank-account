@@ -1,12 +1,12 @@
 package com.danielgiljam.ia_2_009_0_bank_account;
 
 public abstract class BankAccount {
-    private final int accountId;
-    private final String client;
-    private double balance;
-    private double interestRate;
+    protected final int accountId;
+    protected final String client;
+    protected double balance;
+    protected double interestRate;
 
-    private double totalInterest = 0;
+    protected double totalInterest = 0;
 
     public BankAccount(int accountId, String client, double balance, double interestRate) {
         this.accountId = accountId;
@@ -41,12 +41,8 @@ public abstract class BankAccount {
         return totalInterest;
     }
 
-    public void deposit(double amount) {
-        this.balance += amount;
-    }
-
     public void withdraw(double amount) {
-        this.totalInterest *= !(amount <= 0) ? amount / this.balance : 0;
-        this.balance -= amount;
+        totalInterest *= !(amount <= 0) ? amount / this.balance : 0;
+        balance -= amount;
     }
 }
