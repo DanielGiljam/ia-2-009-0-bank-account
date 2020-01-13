@@ -1,20 +1,23 @@
 package com.danielgiljam.ia_2_009_0_bank_account;
 
-import com.danielgiljam.console_dialogue_api.ConsoleDialogueManager;
 import com.danielgiljam.console_dialogue_api.ConsoleDialogueElement;
+import com.danielgiljam.console_dialogue_api.ConsoleDialogueManager;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final List<BankAccount> bankAccounts = new ArrayList<>();
+    private static final List<BankAccount> bankAccounts = new Vector<>();
+    private static final ScheduledExecutorService interestGenerator = Executors.newSingleThreadScheduledExecutor();
 
+    private static int accountTypeDraft;
     private static int accountIdDraft;
     private static String clientDraft;
     private static int balanceDraft;
-    private static double rateDraft;
 
     private static BankAccount specificBankAccountReference;
 
@@ -29,40 +32,43 @@ public class Main {
     private static final String HELP_MESSAGE =
             "Ingen hjälp.\n\n" +
             "------------------------------------------------\n" +
-            "v1.0.0\n\n" +
+            "v2.0.0\n\n" +
             "© Daniel Giljam 2020\n" +
             "Den här kommandotolksappen är licensierad under MIT licensen.";
 
     private static final ConsoleDialogueElement CREATE_BANK_ACCOUNT = new ConsoleDialogueElement(
             () -> {
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl2 = new Vector<>();
-                final String inputFeedLvl2 = "Namn:";
+                final String initialMessageLvl2 =
+                        "1. Sparkonto\n" +
+                        "2. Brukskonto";
+                final String inputFeedLvl2 = ":";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl3 = new Vector<>();
-                final String inputFeedLvl3 = "Kontonr:";
+                final String inputFeedLvl3 = "Namn:";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl4 = new Vector<>();
-                final String inputFeedLvl4 = "Balans:";
+                final String inputFeedLvl4 = "Kontonr:";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl5 = new Vector<>();
-                final String inputFeedLvl5 = "Ränta:";
-                final ConsoleDialogueManager createBankAccount = new ConsoleDialogueManager(consoleDialogueElementsLvl2, null, null, inputFeedLvl2, true, false);
+                final String inputFeedLvl5 = "Saldo:";
+                final ConsoleDialogueManager createBankAccount = new ConsoleDialogueManager(consoleDialogueElementsLvl2, initialMessageLvl2, null, inputFeedLvl2, true, false);
                 consoleDialogueElementsLvl2.add(new ConsoleDialogueElement(
                         () -> {
-                            clientDraft = consoleDialogueElementsLvl2.elementAt(0).matcher.group(1);
+                            accountTypeDraft = Integer.parseInt(consoleDialogueElementsLvl2.elementAt(0).matcher.group(1));
                             new ConsoleDialogueManager(consoleDialogueElementsLvl3, null, null, inputFeedLvl3, false, false);
                         },
-                        "(.+)",
+                        "(1|2)",
                         true
                 ));
                 consoleDialogueElementsLvl3.add(new ConsoleDialogueElement(
                         () -> {
-                            accountIdDraft = Integer.parseInt(consoleDialogueElementsLvl3.elementAt(0).matcher.group(1));
+                            clientDraft = consoleDialogueElementsLvl3.elementAt(0).matcher.group(1);
                             new ConsoleDialogueManager(consoleDialogueElementsLvl4, null, null, inputFeedLvl4, false, false);
                         },
-                        "(\\d+)",
+                        "(.+)",
                         true
                 ));
                 consoleDialogueElementsLvl4.add(new ConsoleDialogueElement(
                         () -> {
-                            balanceDraft = Integer.parseInt(consoleDialogueElementsLvl4.elementAt(0).matcher.group(1));
+                            accountIdDraft = Integer.parseInt(consoleDialogueElementsLvl4.elementAt(0).matcher.group(1));
                             new ConsoleDialogueManager(consoleDialogueElementsLvl5, null, null, inputFeedLvl5, false, false);
                         },
                         "(\\d+)",
@@ -70,8 +76,12 @@ public class Main {
                 ));
                 consoleDialogueElementsLvl5.add(new ConsoleDialogueElement(
                         () -> {
-                            rateDraft = Double.parseDouble(consoleDialogueElementsLvl5.elementAt(0).matcher.group(1).replace(",", "."));
-                            bankAccounts.add(new BankAccount(accountIdDraft, clientDraft, balanceDraft, rateDraft));
+                            balanceDraft = Integer.parseInt(consoleDialogueElementsLvl5.elementAt(0).matcher.group(1));
+
+                            bankAccounts.add(accountTypeDraft == 1
+                                    ? new SavingsAccount(accountIdDraft, clientDraft, balanceDraft)
+                                    : new CheckingAccount(accountIdDraft, clientDraft, balanceDraft)
+                            );
                             printInitialMessage();
                         },
                         "(\\d+(?:[.,]\\d+)?)",
@@ -99,7 +109,7 @@ public class Main {
                                 System.out.println("Det finns inget konto med det numret.");
                                 printInitialMessage();
                             } else if (chosenAction == 4) {
-                                System.out.println(bankAccount.getBalance());
+                                printBalance(bankAccount);
                                 printInitialMessage();
                             } else {
                                 specificBankAccountReference = bankAccount;
@@ -126,9 +136,19 @@ public class Main {
             false
     );
 
-    private static final ConsoleDialogueElement QUIT = new ConsoleDialogueElement(() -> System.exit(0), "5", true);
+    private static final ConsoleDialogueElement QUIT = new ConsoleDialogueElement(
+            () -> {
+                interestGenerator.shutdown();
+                System.exit(0);
+            }, "5", true);
 
     public static void main(String[] args) {
+        interestGenerator.scheduleAtFixedRate(
+                () -> {for (BankAccount bankAccount : bankAccounts) bankAccount.generateInterest();},
+                0,
+                10,
+                TimeUnit.SECONDS
+        );
         Vector<ConsoleDialogueElement> consoleDialogueElements = new Vector<>();
         consoleDialogueElements.add(CREATE_BANK_ACCOUNT);
         consoleDialogueElements.add(INTERACT);
@@ -145,5 +165,13 @@ public class Main {
             if (bankAccount.getAccountId() == accountId) return bankAccount;
         }
         return null;
+    }
+
+    private static void printBalance(BankAccount bankAccount) {
+        System.out.printf(
+                "%nSaldo: %.2f%nRänteintäkter: %.2f%n",
+                bankAccount.getBalance(),
+                bankAccount.getTotalInterest()
+        );
     }
 }
