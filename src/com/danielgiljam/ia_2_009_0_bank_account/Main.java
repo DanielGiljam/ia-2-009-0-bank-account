@@ -3,6 +3,7 @@ package com.danielgiljam.ia_2_009_0_bank_account;
 import com.danielgiljam.console_dialogue_api.ConsoleDialogueElement;
 import com.danielgiljam.console_dialogue_api.ConsoleDialogueManager;
 
+import java.io.*;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
@@ -12,9 +13,11 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final HashMap<Integer, BankAccount> bankAccounts = new HashMap<>();
     private static final ScheduledExecutorService interestGenerator = Executors.newSingleThreadScheduledExecutor();
     private static final Random accountIdGenerator = new Random();
+
+    private static HashMap<Integer, BankAccount> bankAccounts;
+    private static boolean doNotSave = false;
 
     private static int accountTypeDraft;
     private static String clientDraft;
@@ -23,12 +26,12 @@ public class Main {
 
     private static final String INITIAL_MESSAGE =
             "------------------------------------------------\n" +
-            "1. Skapa nytt konto\n" +
-            "2. Ta ut pengar från ett givet konto\n" +
-            "3. Sätta in pengar på ett givet konto\n" +
-            "4. Visa balansen för ett givet konto\n" +
-            "5. Visa alla konton\n" +
-            "6. Avsluta";
+            "[1] Skapa nytt konto\n" +
+            "[2] Ta ut pengar från ett givet konto\n" +
+            "[3] Sätta in pengar på ett givet konto\n" +
+            "[4] Visa balansen för ett givet konto\n" +
+            "[5] Visa alla konton\n" +
+            "[6] Avsluta";
 
     private static final String HELP_MESSAGE =
             "Ingen hjälp.\n\n" +
@@ -41,9 +44,9 @@ public class Main {
             () -> {
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl2 = new Vector<>();
                 final String initialMessageLvl2 =
-                        "1. Sparkonto\n" +
-                        "2. Brukskonto\n" +
-                        "3. Kreditkonto";
+                        "[1] Sparkonto\n" +
+                        "[2] Brukskonto\n" +
+                        "[3] Kreditkonto";
                 final String inputFeedLvl2 = ":";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl3 = new Vector<>();
                 final String inputFeedLvl3 = "Namn:";
@@ -149,11 +152,13 @@ public class Main {
     private static final ConsoleDialogueElement QUIT = new ConsoleDialogueElement(
             () -> {
                 interestGenerator.shutdown();
+                saveBankAccounts();
                 System.exit(0);
             }, "6", true
     );
 
     public static void main(String[] args) {
+        loadBankAccounts();
         interestGenerator.scheduleAtFixedRate(
                 () -> {for (Integer key : bankAccounts.keySet()) bankAccounts.get(key).generateInterest();},
                 0,
@@ -166,6 +171,55 @@ public class Main {
         consoleDialogueElements.add(PRINT_ALL_ACCOUNTS);
         consoleDialogueElements.add(QUIT);
         new ConsoleDialogueManager(consoleDialogueElements, INITIAL_MESSAGE, HELP_MESSAGE, ":", false, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void loadBankAccounts() {
+        try {
+            final FileInputStream fileInputStream = new FileInputStream("saved-state.bankaccounts");
+            final ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+            bankAccounts = (HashMap<Integer, BankAccount>) objectInputStream.readObject();
+            objectInputStream.close();
+            fileInputStream.close();
+        } catch (FileNotFoundException fileNotFound) {
+            bankAccounts = new HashMap<>();
+        } catch (IOException | ClassNotFoundException exception) {
+            bankAccounts = new HashMap<>();
+            exception.printStackTrace();
+            System.out.println(
+                    "OBSERVERA:\n" +
+                    "Ett fel hände när det cachade applikationstillståndet skulle läsas.\n" +
+                    "Vänligen, välj ett alternativ:\n" +
+                    "[1] Skriv över det befintliga applikationstillståndet som inte kan läsas\n" +
+                    "[2] Kör applikationen utan läsa/skriva ihållande applikationstillstånd"
+            );
+            final Vector<ConsoleDialogueElement> consoleDialogueElements = new Vector<>();
+            consoleDialogueElements.add(new ConsoleDialogueElement(
+                    () -> {
+                        final int choice = Integer.parseInt(consoleDialogueElements.elementAt(0).matcher.group(1));
+                        if (choice == 1) {
+                            System.out.println("Skriver över befintligt applikationstillstånd...");
+                        } else {
+                            doNotSave = true;
+                            System.out.println("Inaktiverade ihållande applikationstillstånd för den här körningen.");
+                        }
+                    },
+                    "(1|2)",
+                    true
+            ));
+            new ConsoleDialogueManager(consoleDialogueElements, null, HELP_MESSAGE, ":", false, false);
+        }
+    }
+
+    private static void saveBankAccounts() {
+        if (doNotSave) return;
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream("saved-state.bankaccounts");
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+            objectOutputStream.writeObject(bankAccounts);
+            objectOutputStream.close();
+            fileOutputStream.close();
+        } catch (IOException ignored) {}
     }
 
     private static void printInitialMessage() {

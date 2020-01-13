@@ -1,6 +1,8 @@
 package com.danielgiljam.ia_2_009_0_bank_account;
 
-public class CreditAccount extends BankAccount {
+import java.io.Serializable;
+
+public class CreditAccount extends BankAccount implements Serializable {
     public CreditAccount(String client) {
         super(client, 0, 0.2);
     }
@@ -13,9 +15,5 @@ public class CreditAccount extends BankAccount {
         } else {
             balance -= amount;
         }
-    }
-
-    public boolean belowThreshold() {
-        return balance >= -1000;
     }
 }

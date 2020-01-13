@@ -1,6 +1,8 @@
 package com.danielgiljam.ia_2_009_0_bank_account;
 
-public abstract class BankAccount {
+import java.io.Serializable;
+
+public abstract class BankAccount implements Serializable {
     protected final String client;
     protected double balance;
     protected double interestRate;
