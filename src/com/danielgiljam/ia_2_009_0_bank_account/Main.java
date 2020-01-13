@@ -17,7 +17,7 @@ public class Main {
     private static int accountTypeDraft;
     private static int accountIdDraft;
     private static String clientDraft;
-    private static int balanceDraft;
+    private static double balanceDraft;
 
     private static BankAccount specificBankAccountReference;
 
@@ -27,7 +27,8 @@ public class Main {
             "2. Ta ut pengar från ett givet konto\n" +
             "3. Sätta in pengar på ett givet konto\n" +
             "4. Visa balansen för ett givet konto\n" +
-            "5. Avsluta";
+            "5. Visa alla konton\n" +
+            "6. Avsluta";
 
     private static final String HELP_MESSAGE =
             "Ingen hjälp.\n\n" +
@@ -41,12 +42,13 @@ public class Main {
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl2 = new Vector<>();
                 final String initialMessageLvl2 =
                         "1. Sparkonto\n" +
-                        "2. Brukskonto";
+                        "2. Brukskonto\n" +
+                        "3. Kreditkonto";
                 final String inputFeedLvl2 = ":";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl3 = new Vector<>();
-                final String inputFeedLvl3 = "Namn:";
+                final String inputFeedLvl3 = "Kontonr:";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl4 = new Vector<>();
-                final String inputFeedLvl4 = "Kontonr:";
+                final String inputFeedLvl4 = "Namn:";
                 final Vector<ConsoleDialogueElement> consoleDialogueElementsLvl5 = new Vector<>();
                 final String inputFeedLvl5 = "Saldo:";
                 final ConsoleDialogueManager createBankAccount = new ConsoleDialogueManager(consoleDialogueElementsLvl2, initialMessageLvl2, null, inputFeedLvl2, true, false);
@@ -55,33 +57,40 @@ public class Main {
                             accountTypeDraft = Integer.parseInt(consoleDialogueElementsLvl2.elementAt(0).matcher.group(1));
                             new ConsoleDialogueManager(consoleDialogueElementsLvl3, null, null, inputFeedLvl3, false, false);
                         },
-                        "(1|2)",
+                        "(1|2|3)",
                         true
                 ));
                 consoleDialogueElementsLvl3.add(new ConsoleDialogueElement(
                         () -> {
-                            clientDraft = consoleDialogueElementsLvl3.elementAt(0).matcher.group(1);
-                            new ConsoleDialogueManager(consoleDialogueElementsLvl4, null, null, inputFeedLvl4, false, false);
-                        },
-                        "(.+)",
-                        true
-                ));
-                consoleDialogueElementsLvl4.add(new ConsoleDialogueElement(
-                        () -> {
-                            accountIdDraft = Integer.parseInt(consoleDialogueElementsLvl4.elementAt(0).matcher.group(1));
-                            new ConsoleDialogueManager(consoleDialogueElementsLvl5, null, null, inputFeedLvl5, false, false);
+                            final int accountId = Integer.parseInt(consoleDialogueElementsLvl3.elementAt(0).matcher.group(1));
+                            if (accountIdExists(accountId)) {
+                                System.out.println("Det finns redan ett konto med det här numret.");
+                                printInitialMessage();
+                            } else {
+                                accountIdDraft = accountId;
+                                new ConsoleDialogueManager(consoleDialogueElementsLvl4, null, null, inputFeedLvl4, false, false);
+                            }
                         },
                         "(\\d+)",
                         true
                 ));
+                consoleDialogueElementsLvl4.add(new ConsoleDialogueElement(
+                        () -> {
+                            clientDraft = consoleDialogueElementsLvl4.elementAt(0).matcher.group(1);
+                            if (accountTypeDraft == 3) {
+                                createBankAccount();
+                                printInitialMessage();
+                            } else {
+                                new ConsoleDialogueManager(consoleDialogueElementsLvl5, null, null, inputFeedLvl5, false, false);
+                            }
+                        },
+                        "(.+)",
+                        true
+                ));
                 consoleDialogueElementsLvl5.add(new ConsoleDialogueElement(
                         () -> {
-                            balanceDraft = Integer.parseInt(consoleDialogueElementsLvl5.elementAt(0).matcher.group(1));
-
-                            bankAccounts.add(accountTypeDraft == 1
-                                    ? new SavingsAccount(accountIdDraft, clientDraft, balanceDraft)
-                                    : new CheckingAccount(accountIdDraft, clientDraft, balanceDraft)
-                            );
+                            balanceDraft = Double.parseDouble(consoleDialogueElementsLvl5.elementAt(0).matcher.group(1).replace(",", "."));
+                            createBankAccount();
                             printInitialMessage();
                         },
                         "(\\d+(?:[.,]\\d+)?)",
@@ -111,6 +120,9 @@ public class Main {
                             } else if (chosenAction == 4) {
                                 printBalance(bankAccount);
                                 printInitialMessage();
+                            } else if (chosenAction == 3 && bankAccount instanceof CreditAccount) {
+                                System.out.println("Du kan inte sätta in pengar på ett kreditkonto.");
+                                printInitialMessage();
                             } else {
                                 specificBankAccountReference = bankAccount;
                                 new ConsoleDialogueManager(consoleDialogueElementsLvl3, null, null, inputFeedLvl3, false, false);
@@ -123,8 +135,7 @@ public class Main {
                         () -> {
                             final int amount = Integer.parseInt(consoleDialogueElementsLvl3.elementAt(0).matcher.group(1));
                             if (chosenAction == 2) specificBankAccountReference.withdraw(amount);
-                            else if (chosenAction == 3) specificBankAccountReference.deposit(amount);
-                            else System.out.println("Något omöjligt hände--\n*djupt andetag*\n*visar vi huvudmenyn igen*");;
+                            else ((Depositable) specificBankAccountReference).deposit(amount);
                             printInitialMessage();
                         },
                         "(\\d+)",
@@ -136,11 +147,27 @@ public class Main {
             false
     );
 
+    private static final ConsoleDialogueElement PRINT_ALL_ACCOUNTS = new ConsoleDialogueElement(
+            () -> {
+                int i = 1;
+                System.out.println();
+                for (BankAccount bankAccount : bankAccounts) {
+                    String accountType  = bankAccount instanceof SavingsAccount ? "sparkonto"
+                                        : bankAccount instanceof CheckingAccount ? "brukskonto"
+                                        : "kreditkonto";
+                    System.out.printf("%d. Kontonr: %d, Namn: %s, Kontotyp: %s%n", i, bankAccount.getAccountId(), bankAccount.getClient(), accountType);
+                    i++;
+                };
+                printInitialMessage();
+            }, "5", false
+    );
+
     private static final ConsoleDialogueElement QUIT = new ConsoleDialogueElement(
             () -> {
                 interestGenerator.shutdown();
                 System.exit(0);
-            }, "5", true);
+            }, "6", true
+    );
 
     public static void main(String[] args) {
         interestGenerator.scheduleAtFixedRate(
@@ -152,12 +179,35 @@ public class Main {
         Vector<ConsoleDialogueElement> consoleDialogueElements = new Vector<>();
         consoleDialogueElements.add(CREATE_BANK_ACCOUNT);
         consoleDialogueElements.add(INTERACT);
+        consoleDialogueElements.add(PRINT_ALL_ACCOUNTS);
         consoleDialogueElements.add(QUIT);
         new ConsoleDialogueManager(consoleDialogueElements, INITIAL_MESSAGE, HELP_MESSAGE, ":", false, false);
     }
 
     private static void printInitialMessage() {
         System.out.println("\n" + INITIAL_MESSAGE);
+    }
+
+    private static boolean accountIdExists(int accountId) {
+        for (BankAccount bankAccount : bankAccounts) {
+            if (bankAccount.getAccountId() == accountId) return true;
+        }
+        return false;
+    }
+
+    private static void createBankAccount() {
+        BankAccount bankAccount;
+        switch (accountTypeDraft) {
+            case 1:
+                bankAccount = new SavingsAccount(accountIdDraft, clientDraft, balanceDraft);
+                break;
+            case 2:
+                bankAccount = new CheckingAccount(accountIdDraft, clientDraft, balanceDraft);
+                break;
+            default:
+                bankAccount = new CreditAccount(accountIdDraft, clientDraft);
+        }
+        bankAccounts.add(bankAccount);
     }
 
     private static BankAccount getBankAccount(int accountId) {
