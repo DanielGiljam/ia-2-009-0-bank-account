@@ -7,7 +7,12 @@ public class CreditAccount extends BankAccount {
 
     @Override
     public void withdraw(double amount) {
-        super.withdraw(amount);
+        final double newBalance = balance - amount;
+        if (newBalance <= -1000) {
+            System.out.println("Kunde inte ta ut pengar eftersom din kredit är maxad.");
+        } else {
+            balance -= amount;
+        }
     }
 
     public boolean belowThreshold() {
