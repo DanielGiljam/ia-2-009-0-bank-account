@@ -4,6 +4,7 @@ import com.danielgiljam.console_dialogue_api.ConsoleDialogueElement;
 import com.danielgiljam.console_dialogue_api.ConsoleDialogueManager;
 
 import java.util.HashMap;
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,8 +14,7 @@ public class Main {
 
     private static final HashMap<Integer, BankAccount> bankAccounts = new HashMap<>();
     private static final ScheduledExecutorService interestGenerator = Executors.newSingleThreadScheduledExecutor();
-
-    private static int accountIdCount = 0;
+    private static final Random accountIdGenerator = new Random();
 
     private static int accountTypeDraft;
     private static String clientDraft;
@@ -133,12 +133,14 @@ public class Main {
 
     private static final ConsoleDialogueElement PRINT_ALL_ACCOUNTS = new ConsoleDialogueElement(
             () -> {
+                int i = 1;
                 BankAccount bankAccount;
                 System.out.println();
                 for (Integer key : bankAccounts.keySet()) {
                     bankAccount = bankAccounts.get(key);
                     String accountType = bankAccount instanceof SavingsAccount ? "sparkonto" : bankAccount instanceof CheckingAccount ? "brukskonto" : "kreditkonto";
-                    System.out.printf("Kontonr: %d, Namn: %s, Kontotyp: %s%n", key, bankAccount.getClient(), accountType);
+                    System.out.printf("%d. Kontonr: %d, Namn: %s, Kontotyp: %s%n", i, key, bankAccount.getClient(), accountType);
+                    i++;
                 }
                 printInitialMessage();
             }, "5", false
@@ -170,6 +172,16 @@ public class Main {
         System.out.println("\n" + INITIAL_MESSAGE);
     }
 
+    private static int generateAccountId() {
+        int accountId = accountIdGenerator.nextInt(899) + 100;
+        // NOTE! This will cause an infinite loop if there are more than 999 bank accounts.
+        // But I'm assuming that being able to scale well isn't a criteria for the application.
+        while (bankAccounts.containsKey(accountId)) {
+            accountId = accountIdGenerator.nextInt(899) + 100;
+        }
+        return accountId;
+    }
+
     private static void createBankAccount() {
         BankAccount bankAccount;
         switch (accountTypeDraft) {
@@ -182,7 +194,7 @@ public class Main {
             default:
                 bankAccount = new CreditAccount(clientDraft);
         }
-        bankAccounts.put((accountIdCount++), bankAccount);
+        bankAccounts.put(generateAccountId(), bankAccount);
     }
 
     private static void printBalance(BankAccount bankAccount) {
