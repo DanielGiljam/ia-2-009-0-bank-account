@@ -33,7 +33,7 @@ public class Main {
     private static final String HELP_MESSAGE =
             "Ingen hjälp.\n\n" +
             "------------------------------------------------\n" +
-            "v2.0.0\n\n" +
+            "v3.0.0\n\n" +
             "© Daniel Giljam 2020\n" +
             "Den här kommandotolksappen är licensierad under MIT licensen.";
 
